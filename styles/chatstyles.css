@@ -1,0 +1,87 @@
+.commentArea {
+    font: 14px Arial;
+    padding: 0 10px;
+    margin-top: 20px;
+}
+
+.bubbledNotMe,.bubbledMe {
+    margin-top: 20px;
+    padding: 5px 9px;
+    max-width: 75%;
+    clear: both;
+    position: relative;
+}
+
+.stampedNotMe,.stampedMe {
+    margin-top: 2px;
+    padding: 2px 2px;
+    max-width: 75%;
+    clear: both;
+    position: relative;
+    font-size: x-small;
+}
+
+.bubbledNotMe{
+    float: left;
+    margin-right: auto;
+    -webkit-border-radius: 8px 8px 8px 0px;
+    -moz-border-radius: 8px 8px 8px 0px;
+    -o-border-radius: 8px 8px 8px 0px;
+    -ms-border-radius: 8px 8px 8px 0px;
+    border-radius: 8px 8px 8px 0px;
+    background-color: #65B045;
+    color: #ffffff;
+}
+
+.bubbledNotMe:before {
+    border-bottom: 10px solid #65B045;
+    border-left: 9px solid rgba(0, 0, 0, 0);
+    position: absolute;
+    bottom: 0;
+    left: -8px;
+    content: "";
+}
+
+.stampedNotMe{
+    float: left;
+    margin-right: auto;
+    color: #000000;
+}
+
+.bubbledMe{
+    float: right;
+    margin-left: auto;
+    text-align: right;
+    -webkit-border-radius: 8px 8px 0px 8px;
+    -moz-border-radius: 8px 8px 0px 8px;
+    -o-border-radius: 8px 8px 0px 8px;
+    -ms-border-radius: 8px 8px 0px 8px;
+    border-radius: 8px 8px 0px 8px;
+    background-color: #07D;
+    color: white;
+}
+
+.bubbledMe:before {
+    border-bottom: 9px solid #07D;
+    border-right: 9px solid rgba(0, 0, 0, 0);
+    position: absolute;
+    bottom: 0;
+    right: -8px;
+    content: "";
+}
+
+.stampedMe{
+    float: right;
+    margin-left: auto;
+    text-align: right;
+    color: #000000;
+}
+.chatDate {
+    text-align: center;
+    font-weight:    bold;
+    color: #696969;
+    clear: both;
+    padding-top: 10px;
+    margin-bottom: 0em;
+//    border: 1px solid red;
+}
