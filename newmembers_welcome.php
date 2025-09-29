@@ -1,7 +1,7 @@
 <?php
 require_once('templateHome.class.php');
 
-$page = new templateHome(NOLOGIN, SHOWMSG);
+$page = new templateHome(LOGIN, SHOWMSG, REDIRECTSAFE);
 
 if (isset($CFG->adminmulti)) {
     $directory  = $CFG->adminmulti;
@@ -10,7 +10,7 @@ if (isset($CFG->adminmulti)) {
 }
 
 $content = null;
-$filename = $directory."homepage.inc";
+$filename = $directory."newmembers.inc";
 if (file_exists($filename)) {
     try {
         $fp = fopen($filename,'r');
@@ -18,24 +18,25 @@ if (file_exists($filename)) {
         fclose($fp);
     } catch (Exception $e) {
         $page->messages->addErrorMsg("Error: ".$e->getMessage()." [Reading file]");
-        $content = null;
+        $pagecontent = null;
     } finally {
     }
 }
 
-echo $page->header('Dealernet');
+
+echo $page->header('Welcome New Members');
 echo mainContent();
-echo $page->footer(true);
+echo $page->footer();
 
 function mainContent() {
     global $content;
 
     echo "            <article>\n";
     echo "              <div class='entry-content'>\n";
-    echo renderPhotoSlider(getDefaultPhotoSliderImages(), 'home-photo-slider');
     echo $content;
     echo "              </div> <!-- entry-content -->\n";
     echo "            </article>\n";
-
 }
+
+
 ?>
