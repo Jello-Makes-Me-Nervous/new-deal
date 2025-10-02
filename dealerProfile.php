@@ -65,14 +65,8 @@ if ($action == 'save') {
 }
 
 $dealerTransactions = getDealerTransactions($dealerId);
-//echo "Transactions:<br />\n<pre>";var_dump($dealerTransactions);echo "</pre><br />\n";
 
 $dealerMetrics = new DealerMetrics();
-/*
-if ($page->user->isAdmin() || $isMyProfile) {
-    $dealerMetrics->reloadMetrics($dealerId);
-}
-*/
 $metricMatrix = $dealerMetrics->getDealerMetricsMatrix($dealerId);
 $metricMatrixAsOf = $dealerMetrics->getDealerMetricsAsOf($dealerId);
 $pageTitle = ($isMyProfile) ? 'My Profile' : 'Dealer Profile';
@@ -92,332 +86,1230 @@ if ($isMyProfile || $page->user->isAdmin()) {
     }
 }
 
-echo $page->header($pageTitle);
+// Output buffer to capture and modify the header
+ob_start();
+echo $page->header('DealernetX - '.$pageTitle);
+$headerContent = ob_get_clean();
+
+// Remove everything before </head> and add our clean structure
+$headPos = strpos($headerContent, '</head>');
+if ($headPos !== false) {
+    echo substr($headerContent, 0, $headPos);
+}
+
+echo getModernStyles(); // Add modern styles
+echo '</head><body class="modern-dealernetx">';
+echo getModernNavigation(); // Add modern navigation
 echo mainContent();
+echo getModernFooter(); // Add modern footer
+echo getModernScripts(); // Add modern scripts
 echo $page->footer(true);
 
 function mainContent() {
-    global $page, $UTILITY, $dealerId, $dealerInfo, $dealerTransactions, $dealerMetrics, $metricMatrix;
+    global $page, $UTILITY, $dealerId, $dealerInfo, $dealerTransactions, $dealerMetrics, $metricMatrix, $metricMatrixAsOf;
     global $dealerIsStaff, $isMyProfile, $action, $preferredPaymentData, $bankInfo, $paypalId, $membershipFee, $listingFee, $counterMinimumTotal, $counterMinimumLeast, $counterMinimumMost;
 
-    echo "<div class='page-header'>\n";
-
-    $haveCommands = false;
-
-    if ($isMyProfile) {
-        if ($action == 'edit') {
-            echo "<form name ='sub' action='dealerProfile.php' method='post'>\n";
-            echo "  <input type='hidden'  id='action' name='action' value='save' />\n";
-        } else {
-            echo "  <a href='dealerProfile.php?action=edit#editinfo' class='button'>Edit My Payment Options</a>\n";
-            echo "  <a href='updatePassword.php?userid=".$dealerId."' class='button'>Change Password</a>\n";
-            echo "  <a href='dealerCreditInfo.php' class='button'>CC for Membership Fees</a>\n";
-            echo "  <a href='onVacation.php' class='button'>Vacation Status</a><br /><br />\n";
-            $haveCommands = true;
-        }
-    } else {
-        if ($page->user->isAdmin()) {
-            echo "  <a href='updatePassword.php?userid=".$dealerId."' class='button'>Change Password</a>\n";
-            $haveCommands = true;
-        }
-    }
-
-    if ($isMyProfile) {
-        $url = "assignPreferences.php?dealerId=".$dealerId;
-        echo "  <a href='".$url."' class='button'>Preferences</a>\n";
-        $url = "notificationPreferences.php?dealerId=".$dealerId;
-        echo "  <a href='".$url."' class='button'>Notifications</a>\n";
-        $haveCommands = true;
-    } elseif ($page->user->isAdmin()) {
-        $url = "notificationPreferences.php?dealerId=".$dealerId;
-        echo "  <a href='".$url."' class='button'>Notifications</a>\n";
-        $haveCommands = true;
-    }
     $dealername = $UTILITY->getDealersName($dealerId);
 
-    if ($isMyProfile || (! $dealerIsStaff)) {
-        $url = "marketsnapshot.php?dealer=".$dealername."&type=W&sortby=cat&hourssince=0";
-        echo "  <a href='".$url."' class='button'>View My Buys</a>\n";
-        $url = "marketsnapshot.php?dealer=".$dealername."&type=FS&sortby=cat&hourssince=0";
-        echo "  <a href='".$url."' class='button'>View My Sells</a>\n";
-        $haveCommands = true;
-    }
+    $html = '
+    <!-- Main Content Wrapper -->
+    <div class="main-content-wrapper">
+        <div class="container">';
 
-    if ($haveCommands) {
-        echo "<br /><br />\n";
-    }
-
+    // Profile Header with Logo and Basic Info
+    $html .= '
+            <div class="profile-header-card">
+                <div class="profile-header-content">';
+    
     if ($dealerInfo['listinglogo']) {
-        $deleteImg = ($page->user->isAdmin()) ? "&nbsp;&nbsp;<a href='dealerProfile.php?dealerId=".$dealerId."&action=rmlogo' title='Delete Logo' onClick=\"return confirm('Are you sure you want to delete this logo?');\"><i class='fa-solid fa-trash'></i></a>" : "";
-        echo "<img src='".$page->utility->getPrefixMemberImageURL($dealerInfo['listinglogo'])."' style='max-width:200px; max-height:200px;' />".$deleteImg;
-        echo "<br /><br />\n";
+        $deleteImg = ($page->user->isAdmin()) ? '<button class="logo-delete-btn" onclick="if(confirm(\'Are you sure you want to delete this logo?\')) window.location.href=\'dealerProfile.php?dealerId='.$dealerId.'&action=rmlogo\'"><i class="fa-solid fa-trash"></i></button>' : '';
+        $html .= '
+                    <div class="dealer-logo-wrapper">
+                        <img src="'.$page->utility->getPrefixMemberImageURL($dealerInfo['listinglogo']).'" class="dealer-logo" alt="Dealer Logo">
+                        '.$deleteImg.'
+                    </div>';
     }
-
-    echo "  ".$dealername;
+    
+    $html .= '
+                    <div class="dealer-info">
+                        <h1 class="dealer-name">'.$dealername.'</h1>
+                        <div class="dealer-badges">';
+    
     if ($dealerInfo['elitemember']) {
-        echo " <span title='Elite Member' style='margin-left:10px; margin-right:10px;'><i class='fas fa-star'></i></span>Elite Member";
+        $html .= '<span class="badge badge-elite"><i class="fas fa-star"></i> Elite Member</span>';
     }
     if ($dealerInfo['bluestarmember']) {
-        echo " <span title='Above Standard Member' style='margin-left:10px; margin-right:10px;'><i class='fas fa-star' style='color:#00f;'></i></span>Above Standard Member";
+        $html .= '<span class="badge badge-bluestar"><i class="fas fa-star"></i> Above Standard Member</span>';
     }
     if ($dealerInfo['verifiedmember']) {
-        echo " <span title='Verified Member' style='margin-left:10px; margin-right:10px;'><i class='fas fa-check' style='color:#090;'></i></span>Verified Member";
+        $html .= '<span class="badge badge-verified"><i class="fas fa-check"></i> Verified Member</span>';
     }
-    echo "<br />\n";
-
+    
+    $html .= '
+                        </div>
+                        <div class="dealer-meta">';
     if ($page->user->isStaff()) {
-        echo "User Class: ".$dealerInfo['userclassname']."<br />\n";
+        $html .= '<span class="meta-item">User Class: '.$dealerInfo['userclassname'].'</span>';
     }
-    echo "DealernetX Member Since: ".date('m/d/Y', $dealerInfo['accountcreated'])."<br />\n";
-
-    displayAdminActions($dealerId);
-
-    displayDealerTransactions($dealerTransactions);
-
-    echo "</div>\n";
-
-    if ($isMyProfile || (! $dealerIsStaff)) {
-        echo "<table class='outer-table'>\n";
-        if ($isMyProfile) {
-            echo "  <caption><a href='addressChange.php'>Request Address Change</a></caption>\n";
-        }
-        echo "  <tbody>\n";
-        echo "    <tr>\n";
-        echo "      <td class='double-table'>\n";
-        echo "        <table>\n";
-        echo "          <thead>\n";
-        echo "            <tr>\n";
-        $addressasof = $UTILITY->getAddressAsOf($dealerId, ADDRESS_TYPE_PAY);
-        echo "              <th>Pay To Address ".$addressasof."</th>\n";
-        echo "            </tr>\n";
-        echo "          </thead>\n";
-        echo "          <tbody>\n";
-        if ($isMyProfile || $page->user->isAdmin()) {
-            echo "            <tr>\n";
-            echo "              <td class='address' data-label='Pay To Address ".$addressasof."'>";
-            $UTILITY->formatAddress($dealerId, ADDRESS_TYPE_PAY, $isMyProfile, true);
-            echo "              </td>\n";
-            echo "            </tr>\n";
-            if ($addr = $UTILITY->getAddress($dealerId, ADDRESS_TYPE_REQUEST_PAY, $isMyProfile, true)) {
-                echo "            <tr><td><strong>Pending Pay To Address ".$UTILITY->getAddressAsOf($dealerId, ADDRESS_TYPE_REQUEST_PAY)."</strong>";
-                if ($page->user->isAdmin()) {
-                    echo " <a href='dealerProfile.php?dealerId=".$dealerId."&action=payupdate'><button>Apply</button></a>";
-                }
-                if ($page->user->isAdmin() || $isMyProfile) {
-                    echo " <a href='dealerProfile.php?dealerId=".$dealerId."&action=paydelete'><button>Delete</button></a>";
-                }
-                echo "</td></tr>\n";
-                echo "            <tr>\n";
-                echo "              <td>";
-                $UTILITY->displayAddress($addr, $dealerId, ADDRESS_TYPE_REQUEST_PAY, $isMyProfile, true);
-                echo "              </td>\n";
-                echo "            </tr>\n";
-            }
+    $html .= '
+                            <span class="meta-item">Member Since: '.date('m/d/Y', $dealerInfo['accountcreated']).'</span>
+                        </div>';
+    
+    // Admin Actions
+    if ($page->user->isAdmin()) {
+        $html .= '
+                        <div class="admin-actions">
+                            <a href="userUpdate.php?userId='.$dealerId.'" class="admin-btn" title="Edit"><i class="fas fa-edit"></i></a>
+                            <a href="EFTone.php?userId='.$dealerId.'" class="admin-btn" title="EFT Credit"><i class="fas fa-credit-card"></i></a>
+                            <a href="assignUserRights.php?userId='.$dealerId.'" class="admin-btn" title="Rights"><i class="fas fa-user-cog"></i></a>
+                            <a href="inProxy.php?proxiedId='.$dealerId.'" class="admin-btn" title="Proxy"><i class="fas fa-mask"></i></a>
+                        </div>';
+    }
+    
+    $html .= '
+                    </div>
+                </div>';
+    
+    // Action Buttons
+    $html .= '
+                <div class="profile-actions">';
+    
+    if ($isMyProfile) {
+        if ($action == 'edit') {
+            // Form starts here for editing
+            $html = '<form name="sub" action="dealerProfile.php" method="post">
+                <input type="hidden" id="action" name="action" value="save">
+                <div class="main-content-wrapper">
+                    <div class="container">' . $html;
         } else {
-            echo "            <tr>\n";
-            echo "              <td class='address' data-label='Pay To Address ".$addressasof."'>";
-            profileFormatAddress($dealerId, ADDRESS_TYPE_PAY, $isMyProfile, true);
-            echo "              </td>\n";
-            echo "            </tr>\n";
+            $html .= '
+                    <a href="dealerProfile.php?action=edit#editinfo" class="btn-action">Edit Payment Options</a>
+                    <a href="updatePassword.php?userid='.$dealerId.'" class="btn-action">Change Password</a>
+                    <a href="dealerCreditInfo.php" class="btn-action">CC for Membership</a>
+                    <a href="onVacation.php" class="btn-action">Vacation Status</a>';
         }
-        echo "          </tbody>\n";
-        echo "        </table>\n";
-        echo "      </td>\n";
+        $html .= '
+                    <a href="assignPreferences.php?dealerId='.$dealerId.'" class="btn-action">Preferences</a>
+                    <a href="notificationPreferences.php?dealerId='.$dealerId.'" class="btn-action">Notifications</a>';
+    } elseif ($page->user->isAdmin()) {
+        $html .= '
+                    <a href="updatePassword.php?userid='.$dealerId.'" class="btn-action">Change Password</a>
+                    <a href="notificationPreferences.php?dealerId='.$dealerId.'" class="btn-action">Notifications</a>';
+    }
+    
+    if ($isMyProfile || (!$dealerIsStaff)) {
+        $html .= '
+                    <a href="marketsnapshot.php?dealer='.$dealername.'&type=W&sortby=cat&hourssince=0" class="btn-action">View My Buys</a>
+                    <a href="marketsnapshot.php?dealer='.$dealername.'&type=FS&sortby=cat&hourssince=0" class="btn-action">View My Sells</a>';
+    }
+    
+    $html .= '
+                </div>
+            </div>';
 
-        echo "      <td class='double-table'>\n";
-        echo "        <table>\n";
-        echo "          <thead>\n";
-        echo "            <tr>\n";
-        $addressasof = $UTILITY->getAddressAsOf($dealerId, ADDRESS_TYPE_SHIP);
-        echo "              <th>Ship To Address ".$addressasof."</th>\n";
-        echo "            </tr>\n";
-        echo "          </thead>\n";
-        echo "          <tbody>\n";
-        if ($isMyProfile || $page->user->isAdmin()) {
-            echo "            <tr>\n";
-            echo "              <td class='address' data-label='Ship To Address ".$addressasof."'>\n";
-            $UTILITY->formatAddress($dealerId, ADDRESS_TYPE_SHIP, $isMyProfile, true);
-            echo "              </td>\n";
-            echo "            </tr>\n";
-            if ($addr = $UTILITY->getAddress($dealerId, ADDRESS_TYPE_REQUEST_SHIP, $isMyProfile, true)) {
-                echo "            <tr><td><strong>Pending Ship To Address ".$UTILITY->getAddressAsOf($dealerId, ADDRESS_TYPE_REQUEST_SHIP)."</strong>";
-                if ($page->user->isAdmin()) {
-                    echo " <a href='dealerProfile.php?dealerId=".$dealerId."&action=shipupdate'><button>Apply</button></a>";
+    // Dealer Metrics
+    if (($isMyProfile || (!$dealerIsStaff)) && $dealerMetrics && is_array($metricMatrix)) {
+        $html .= '
+            <div class="metrics-card">
+                <h2 class="section-title">Performance Metrics</h2>
+                <p class="metrics-info">Lifetime Accepted Transactions: '.($dealerMetrics->lifetimeAccepted ?: 'None').'</p>';
+        
+        if (is_array($metricMatrix)) {
+            $matrixAsOf = ($metricMatrixAsOf) ? "As of ".date('m/d/Y h:i:s') : "";
+            
+            $html .= '
+                <div class="metrics-table-wrapper">
+                    <table class="metrics-table">
+                        <thead>
+                            <tr>
+                                <th></th>';
+            
+            foreach ($dealerMetrics->intervals as $intervalId => $intervalInfo) {
+                if (displayMetricInterval($intervalId)) {
+                    $html .= '<th>'.$intervalInfo['name'].'</th>';
                 }
-                if ($page->user->isAdmin() || $isMyProfile) {
-                    echo " <a href='dealerProfile.php?dealerId=".$dealerId."&action=shipdelete'><button>Delete</button></a>";
-                }
-                echo "</td></tr>\n";
-                echo "            <tr>\n";
-                echo "              <td>";
-                $UTILITY->displayAddress($addr, $dealerId, ADDRESS_TYPE_REQUEST_SHIP, $isMyProfile, true);
-                echo "              </td>\n";
-                echo "            </tr>\n";
             }
-        } else {
-            echo "            <tr>\n";
-            echo "              <td class='address' data-label='Ship To Address ".$addressasof."'>\n";
-            profileFormatAddress($dealerId, ADDRESS_TYPE_SHIP, $isMyProfile, true);
-            echo "              </td>\n";
-            echo "            </tr>\n";
-        }
-        echo "          </tbody>\n";
-        echo "        </table>\n";
-        echo "      </td>\n";
-        echo "    </tr>\n";
-        echo "  </tbody>\n";
-        echo "</table>\n";
-
-        if ($dealerInfo) {
-            if (!empty($dealerInfo['accountnote'])) {
-                echo "        <table>\n";
-                echo "          <thead>\n";
-                echo "            <tr>\n";
-                echo "              <th>Account Note</th>\n";
-                echo "            </tr>\n";
-                echo "          </thead>\n";
-                echo "          <tbody>\n";
-                echo "            <tr>\n";
-                echo "              <td>".$page->utility->htmlFriendlyString($dealerInfo['accountnote'])."</td>\n";
-                echo "            </tr>\n";
-                echo "          </tbody>\n";
-                echo "        </table>\n";
-            }
-
-            if ($isMyProfile || $page->user->isStaff()) {
-
-                echo "        <table id='editinfo' name='editinfo'>\n";
-                echo "          <thead>\n";
-                echo "            <tr>\n";
-                echo "              <th>Bank Info</th>\n";
-                echo "              <th>EFT Withdraw Paypal ID</th>\n";
-                if ($page->user->isStaff()) {
-                    echo "              <th>Membership Fee</th>\n";
-                    echo "              <th>Listing Fee</th>\n";
-                }
-                echo "            </tr>\n";
-                echo "          </thead>\n";
-                echo "          <tbody>\n";
-                echo "            <tr>\n";
-                echo "              <td data-label='Bank Info'>".$bankInfo."</td>\n";
-                echo "              <td data-label='EFT Withdraw Paypal ID'>".$paypalId."</td>\n";
-                if ($page->user->isStaff()) {
-                    echo "              <td data-label='Membership Fee' class='number'>$".$membershipFee."</td>\n";
-                    //echo "              <td align=right>".number_format(($listingFee * 100.00), 2)." %</td>\n";
-                    echo "              <td data-label='Listing Fee' class='number'>".($listingFee*100)." %</td>\n";
-                }
-                echo "            </tr>\n";
-                echo "          </tbody>\n";
-                echo "        </table>\n";
-            }
-
-            if ($isMyProfile || $page->user->isStaff()) {
-                if (isset($dealerInfo['counterminimumdtotal'])) {
-                    if (($isMyProfile) && ($action == 'edit')) {
-                        $counterMinimumTotalStr = "<input type='text' id='counterminimumdtotal' name='counterminimumdtotal' size='8' style='text-align:right;' value='".$counterMinimumTotal."' />";
-                    } else {
-                        $counterMinimumTotalStr = $counterMinimumTotal;
+            
+            $html .= '
+                            </tr>
+                        </thead>
+                        <tbody>';
+            
+            foreach ($metricMatrix as $metricname => $metric) {
+                $html .= '
+                            <tr>
+                                <th>'.$dealerMetrics->getProfileColumnTitle($metricname).'</th>';
+                
+                $tdClass = $dealerMetrics->styleProfileColumnData($metricname);
+                foreach ($metric as $intervalId => $intervalValue) {
+                    if (displayMetricInterval($intervalId)) {
+                        $classStr = $tdClass ? ' class="'.$tdClass.'"' : '';
+                        $html .= '<td'.$classStr.'>'.$dealerMetrics->formatProfileColumnData($intervalValue, $metricname).'</td>';
                     }
-                    echo "        <table>\n";
-                    echo "          <thead>\n";
-                    echo "            <tr>\n";
-                    echo "              <th>Counter Offer</th>\n";
-                    echo "            </tr>\n";
-                    echo "          </thead>\n";
-                    echo "          <tbody>\n";
-                    echo "            <tr>\n";
-                    echo "              <td class='address' data-label='Counter Offer'>Minimum Order Total For Counter Offers: $".$counterMinimumTotalStr." ($".$counterMinimumLeast." to $".$counterMinimumMost.")</td>\n";
-                    echo "            </tr>\n";
-                    echo "          </tbody>\n";
-                    echo "        </table>\n";
                 }
+                
+                $html .= '
+                            </tr>';
             }
+            
+            $html .= '
+                        </tbody>
+                    </table>
+                </div>
+                <p class="metrics-date">'.$matrixAsOf.'</p>';
         }
+        
+        $html .= '
+            </div>';
+    }
 
-        $preferredCaption = "";
-        if (($isMyProfile) && ($action == 'edit')) {
-            $preferredCaption = "<caption>* indicates additional info is required if option is selected</caption>\n";
-            $preferredPayment = getEditDealerPreferredPayment();
+    // Addresses Section
+    if ($isMyProfile || (!$dealerIsStaff)) {
+        $payAddressAsOf = $UTILITY->getAddressAsOf($dealerId, ADDRESS_TYPE_PAY);
+        $shipAddressAsOf = $UTILITY->getAddressAsOf($dealerId, ADDRESS_TYPE_SHIP);
+        
+        $html .= '
+            <div class="addresses-section">
+                <div class="section-header-row">
+                    <h2 class="section-title">Addresses</h2>';
+        
+        if ($isMyProfile) {
+            $html .= '<a href="addressChange.php" class="btn-link">Request Address Change</a>';
+        }
+        
+        $html .= '
+                </div>
+                <div class="addresses-grid">
+                    <div class="address-card">
+                        <h3 class="address-title">Pay To Address '.$payAddressAsOf.'</h3>
+                        <div class="address-content">';
+        
+        ob_start();
+        if ($isMyProfile || $page->user->isAdmin()) {
+            $UTILITY->formatAddress($dealerId, ADDRESS_TYPE_PAY, $isMyProfile, true);
+            
+            if ($addr = $UTILITY->getAddress($dealerId, ADDRESS_TYPE_REQUEST_PAY, $isMyProfile, true)) {
+                echo '<div class="pending-address">';
+                echo '<strong>Pending Pay To Address '.$UTILITY->getAddressAsOf($dealerId, ADDRESS_TYPE_REQUEST_PAY).'</strong>';
+                if ($page->user->isAdmin()) {
+                    echo ' <button onclick="window.location.href=\'dealerProfile.php?dealerId='.$dealerId.'&action=payupdate\'" class="btn-small">Apply</button>';
+                }
+                if ($page->user->isAdmin() || $isMyProfile) {
+                    echo ' <button onclick="window.location.href=\'dealerProfile.php?dealerId='.$dealerId.'&action=paydelete\'" class="btn-small btn-danger">Delete</button>';
+                }
+                echo '</div>';
+                $UTILITY->displayAddress($addr, $dealerId, ADDRESS_TYPE_REQUEST_PAY, $isMyProfile, true);
+            }
         } else {
-            $preferredPayment = getDealerPreferredPayment();
+            profileFormatAddress($dealerId, ADDRESS_TYPE_PAY, $isMyProfile, true);
         }
-        echo "<table class='outer-table'>\n";
-        echo $preferredCaption;
-        echo "  <tbody>\n";
-        echo "    <tr>\n";
-        echo "      <td class='double-table'>\n";
-        echo "        <table>\n";
-        echo "          <thead>\n";
-        echo "            <tr>\n";
-        echo "              <th>Buying Payment Options</th>\n";
-        echo "            </tr>\n";
-        echo "          </thead>\n";
-        echo "          <tbody>\n";
-        echo "            <tr>\n";
-        echo "              <td class='address' data-label='Buying Payment Options'>\n";
-        echo "               ".$preferredPayment['Wanted']."\n";
-        echo "              </td>\n";
-        echo "            </tr>\n";
-        echo "          </tbody>\n";
-        echo "        </table>\n";
-        echo "      </td>\n";
+        $addressHtml = ob_get_clean();
+        
+        $html .= $addressHtml;
+        $html .= '
+                        </div>
+                    </div>
+                    
+                    <div class="address-card">
+                        <h3 class="address-title">Ship To Address '.$shipAddressAsOf.'</h3>
+                        <div class="address-content">';
+        
+        ob_start();
+        if ($isMyProfile || $page->user->isAdmin()) {
+            $UTILITY->formatAddress($dealerId, ADDRESS_TYPE_SHIP, $isMyProfile, true);
+            
+            if ($addr = $UTILITY->getAddress($dealerId, ADDRESS_TYPE_REQUEST_SHIP, $isMyProfile, true)) {
+                echo '<div class="pending-address">';
+                echo '<strong>Pending Ship To Address '.$UTILITY->getAddressAsOf($dealerId, ADDRESS_TYPE_REQUEST_SHIP).'</strong>';
+                if ($page->user->isAdmin()) {
+                    echo ' <button onclick="window.location.href=\'dealerProfile.php?dealerId='.$dealerId.'&action=shipupdate\'" class="btn-small">Apply</button>';
+                }
+                if ($page->user->isAdmin() || $isMyProfile) {
+                    echo ' <button onclick="window.location.href=\'dealerProfile.php?dealerId='.$dealerId.'&action=shipdelete\'" class="btn-small btn-danger">Delete</button>';
+                }
+                echo '</div>';
+                $UTILITY->displayAddress($addr, $dealerId, ADDRESS_TYPE_REQUEST_SHIP, $isMyProfile, true);
+            }
+        } else {
+            profileFormatAddress($dealerId, ADDRESS_TYPE_SHIP, $isMyProfile, true);
+        }
+        $addressHtml = ob_get_clean();
+        
+        $html .= $addressHtml;
+        $html .= '
+                        </div>
+                    </div>
+                </div>
+            </div>';
+    }
 
-        echo "      <td class='double-table'>\n";
-        echo "        <table>\n";
-        echo "          <thead>\n";
-        echo "            <tr>\n";
-        echo "              <th>Selling Payment Options</th>\n";
-        echo "            </tr>\n";
-        echo "          </thead>\n";
-        echo "          <tbody>\n";
-        echo "            <tr>\n";
-        echo "              <td class='address' data-label='Selling Payment Options'>\n";
-        echo "               ".$preferredPayment['For Sale']."\n";
-        echo "              </td>\n";
-        echo "            </tr>\n";
-        echo "          </tbody>\n";
-        echo "        </table>\n";
-        echo "      </td>\n";
-        echo "    </tr>\n";
-        echo "  </tbody>\n";
-        echo "</table>\n";
-}
+    // Account Note
+    if ($dealerInfo && !empty($dealerInfo['accountnote'])) {
+        $html .= '
+            <div class="info-card">
+                <h3 class="card-title">Account Note</h3>
+                <div class="card-content">
+                    '.$page->utility->htmlFriendlyString($dealerInfo['accountnote']).'
+                </div>
+            </div>';
+    }
 
-    if (! $isMyProfile) {
-        echo "<table >\n";
-        echo "  <thead>\n";
-        echo "    <tr>\n";
-        echo "      <th>My Dealer Notes (only visible to you)</th>\n";
-        echo "    </tr>\n";
-        echo "  </thead>\n";
-        echo "  <tbody>\n";
-        echo "    <tr>\n";
-        echo "      <td class='address' data-label='My Dealer Notes (only visible to you)'>\n";
-        echo "        <ul>\n";
+    // Bank/Payment Info (Staff Only)
+    if ($isMyProfile || $page->user->isStaff()) {
+        $html .= '
+            <div class="payment-info-card" id="editinfo">
+                <h3 class="card-title">Payment Information</h3>
+                <div class="payment-info-grid">
+                    <div class="info-item">
+                        <label>Bank Info</label>
+                        <span>'.$bankInfo.'</span>
+                    </div>
+                    <div class="info-item">
+                        <label>EFT Withdraw Paypal ID</label>
+                        <span>'.$paypalId.'</span>
+                    </div>';
+        
+        if ($page->user->isStaff()) {
+            $html .= '
+                    <div class="info-item">
+                        <label>Membership Fee</label>
+                        <span>$'.$membershipFee.'</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Listing Fee</label>
+                        <span>'.($listingFee*100).'%</span>
+                    </div>';
+        }
+        
+        $html .= '
+                </div>
+            </div>';
+    }
+
+    // Counter Offer Minimum
+    if (($isMyProfile || $page->user->isStaff()) && isset($dealerInfo['counterminimumdtotal'])) {
+        $counterMinimumTotalStr = ($isMyProfile && $action == 'edit')
+            ? '<input type="text" id="counterminimumdtotal" name="counterminimumdtotal" class="input-inline" value="'.$counterMinimumTotal.'">'
+            : $counterMinimumTotal;
+        
+        $html .= '
+            <div class="info-card">
+                <h3 class="card-title">Counter Offer Settings</h3>
+                <div class="card-content">
+                    Minimum Order Total For Counter Offers: $'.$counterMinimumTotalStr.' 
+                    <span class="hint">($'.$counterMinimumLeast.' to $'.$counterMinimumMost.')</span>
+                </div>
+            </div>';
+    }
+
+    // Payment Options
+    $preferredPayment = ($isMyProfile && $action == 'edit') 
+        ? getEditDealerPreferredPayment() 
+        : getDealerPreferredPayment();
+    
+    $html .= '
+            <div class="payment-options-section">
+                <h2 class="section-title">Payment Options</h2>';
+    
+    if ($isMyProfile && $action == 'edit') {
+        $html .= '<p class="section-note">* indicates additional info is required if option is selected</p>';
+    }
+    
+    $html .= '
+                <div class="payment-options-grid">
+                    <div class="payment-option-card">
+                        <h3 class="card-title">Buying Payment Options</h3>
+                        <div class="payment-options-content">
+                            '.$preferredPayment['Wanted'].'
+                        </div>
+                    </div>
+                    <div class="payment-option-card">
+                        <h3 class="card-title">Selling Payment Options</h3>
+                        <div class="payment-options-content">
+                            '.$preferredPayment['For Sale'].'
+                        </div>
+                    </div>
+                </div>
+            </div>';
+
+    // Dealer Notes (for other dealers)
+    if (!$isMyProfile) {
         $dNotes = getDealerNotes();
-        if (isset($dNotes)) {
+        $notesHtml = '';
+        if (isset($dNotes) && count($dNotes) > 0) {
             foreach ($dNotes as $dN) {
-                echo "          <li>".$dN['dealernote']."</li>\n";
+                $notesHtml .= '<li>'.$dN['dealernote'].'</li>';
             }
         } else {
-            echo "          <li>No notes</li>\n";
-
+            $notesHtml = '<li>No notes</li>';
         }
-        echo "        </ul>\n";
-        echo "      </td>\n";
-        echo "    </tr>\n";
-        echo "  </tbody>\n";
-        echo "</table>\n";
+        
+        $html .= '
+            <div class="dealer-notes-card">
+                <h3 class="card-title">My Dealer Notes <span class="subtitle">(only visible to you)</span></h3>
+                <div class="card-content">
+                    <ul class="notes-list">
+                        '.$notesHtml.'
+                    </ul>
+                </div>
+                <a href="dealerNotes.php?dealerId='.$dealerId.'" class="btn-action">Edit Dealer Notes</a>
+            </div>';
+    }
 
-        echo "<a class='button' href='dealerNotes.php?dealerId=".$dealerId."'>Edit Dealer Notes</a>\n";
-    }
+    // Form Actions
     if ($action == 'edit') {
-        echo "<input class='button' type='submit' name='savebtn' id='savebtn' value='Save'>\n";
-        echo "<a class='button' href='dealerProfile.php'>Cancel</a>\n";
-        echo "</form>\n";
+        $html .= '
+            <div class="form-actions">
+                <button type="submit" name="savebtn" id="savebtn" class="btn-save">Save Changes</button>
+                <a href="dealerProfile.php" class="btn-cancel">Cancel</a>
+            </div>
+        </form>';
     }
+
+    $html .= '
+        </div>
+    </div>';
+
+    return $html;
 }
 
+function getModernStyles() {
+    return '<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0066FF;
+            --primary-dark: #003D99;
+            --success: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --info: #3B82F6;
+            --dark: #0F172A;
+            --gray: #64748B;
+            --light: #F8FAFC;
+            --gradient: linear-gradient(135deg, #0066FF 0%, #003D99 100%);
+            --navy: #001F3F;
+            --gold: #FFD700;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background: var(--light);
+            overflow-x: hidden;
+        }
+
+        /* Hide original template elements */
+        body > table:last-of-type, body > center:last-of-type { display: none !important; }
+        .modern-footer ~ * { display: none !important; }
+        .original-header, .original-nav { display: none; }
+        body > table, body > center { display: none !important; }
+        #header, .header, #navigation, .navigation { display: none !important; }
+        .page-header:not(.profile-header-card) { display: none !important; }
+
+        /* Modern Navigation */
+        nav.modern-nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-link {
+            display: inline-block;
+            height: 40px;
+            text-decoration: none;
+        }
+
+        .logo-img {
+            height: 40px;
+            width: auto;
+            display: block;
+            transition: opacity 0.3s ease;
+        }
+
+        .logo-img:hover {
+            opacity: 0.8;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--gray);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            position: relative;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary);
+        }
+
+        .nav-link::after {
+            content: "";
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        .nav-link:hover::after, .nav-link.active::after {
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 102, 255, 0.2);
+        }
+
+        /* Main Content */
+        .main-content-wrapper {
+            margin-top: 80px;
+            padding: 2rem 0;
+            min-height: calc(100vh - 80px);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Profile Header Card */
+        .profile-header-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2rem;
+        }
+
+        .profile-header-content {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+        }
+
+        .dealer-logo-wrapper {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .dealer-logo {
+            width: 150px;
+            height: 150px;
+            object-fit: contain;
+            border-radius: 12px;
+            background: var(--light);
+            padding: 0.5rem;
+        }
+
+        .logo-delete-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logo-delete-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .dealer-info {
+            flex: 1;
+        }
+
+        .dealer-name {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--dark);
+            margin-bottom: 1rem;
+        }
+
+        .dealer-badges {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .badge-elite {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: white;
+        }
+
+        .badge-bluestar {
+            background: linear-gradient(135deg, #0066FF, #003D99);
+            color: white;
+        }
+
+        .badge-verified {
+            background: linear-gradient(135deg, #10B981, #059669);
+            color: white;
+        }
+
+        .dealer-meta {
+            display: flex;
+            gap: 2rem;
+            color: var(--gray);
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .admin-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: var(--light);
+            color: var(--gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .admin-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Profile Actions */
+        .profile-actions {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 0.75rem;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e5e7eb;
+            overflow-x: auto;
+        }
+
+        .btn-action {
+            background: var(--primary);
+            color: white;
+            padding: 0.625rem 1rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            display: inline-block;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .btn-action:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        /* Metrics Card */
+        .metrics-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 1rem;
+        }
+
+        .metrics-info {
+            color: var(--gray);
+            margin-bottom: 1.5rem;
+        }
+
+        .metrics-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .metrics-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .metrics-table thead {
+            background: var(--light);
+        }
+
+        .metrics-table th {
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--dark);
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .metrics-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .metrics-table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .metrics-date {
+            text-align: right;
+            color: var(--gray);
+            font-size: 0.85rem;
+            margin-top: 1rem;
+        }
+
+        /* Addresses Section */
+        .addresses-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .btn-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .btn-link:hover {
+            color: var(--primary-dark);
+        }
+
+        .addresses-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .address-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .address-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .address-content {
+            color: var(--gray);
+            line-height: 1.8;
+        }
+
+        .pending-address {
+            background: #FEF3C7;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+        }
+
+        .pending-address strong {
+            color: #92400E;
+        }
+
+        /* Info Cards */
+        .info-card, .payment-info-card, .payment-option-card, .dealer-notes-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .card-title .subtitle {
+            color: var(--gray);
+            font-weight: 400;
+            font-size: 0.85rem;
+        }
+
+        .card-content {
+            color: var(--gray);
+            line-height: 1.7;
+        }
+
+        /* Payment Info Grid */
+        .payment-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-item label {
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin-bottom: 0.25rem;
+        }
+
+        .info-item span {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        /* Payment Options */
+        .payment-options-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-note {
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .payment-options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .payment-options-content {
+            line-height: 1.8;
+        }
+
+        .payment-options-content table {
+            width: 100%;
+        }
+
+        .payment-options-content td {
+            padding: 0.5rem 0;
+        }
+
+        .payment-options-content input[type="text"] {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .payment-options-content input[type="checkbox"] {
+            margin-right: 0.5rem;
+        }
+
+        /* Dealer Notes */
+        .notes-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .notes-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .notes-list li:last-child {
+            border-bottom: none;
+        }
+
+        /* Form Elements */
+        .input-inline {
+            padding: 0.375rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            width: auto;
+            display: inline-block;
+        }
+
+        .hint {
+            color: var(--gray);
+            font-size: 0.85rem;
+            margin-left: 0.5rem;
+        }
+
+        .btn-small {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.85rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-small:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background: #DC2626;
+        }
+
+        /* Form Actions */
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        .btn-save {
+            background: var(--success);
+            color: white;
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-save:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .btn-cancel {
+            background: var(--gray);
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .btn-cancel:hover {
+            background: #475569;
+        }
+
+        /* Modern Footer */
+        footer.modern-footer {
+            background: linear-gradient(180deg, #001F3F 0%, #000A1A 100%);
+            color: white;
+            padding: 3rem 2rem 1rem;
+            margin-top: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        footer.modern-footer::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #0066FF, transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        .footer-container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-brand h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #0066FF 0%, #00A3FF 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+
+        .footer-brand p {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+
+        .footer-column h4 {
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #0066FF;
+            font-weight: 600;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .footer-link {
+            color: rgba(255, 255, 255, 0.75);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            position: relative;
+            padding-left: 0;
+        }
+
+        .footer-link:hover {
+            color: #00A3FF;
+            padding-left: 5px;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(0, 102, 255, 0.2);
+            padding-top: 2rem;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+        }
+
+        .footer-bottom a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-bottom a:hover {
+            color: #00A3FF;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .profile-header-content {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .dealer-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .profile-actions {
+                justify-content: flex-start;
+            }
+
+            .addresses-grid,
+            .payment-options-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .payment-info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+    </style>';
+}
+
+function getModernNavigation() {
+    return '
+    <!-- Modern Navigation -->
+    <nav class="modern-nav" id="navbar">
+        <div class="nav-container">
+            <a href="/index.php" class="logo-link">
+                <img src="/images/dealernetx-logo.png" alt="DealernetX" class="logo-img" onerror="this.style.display=\'none\'; this.parentElement.innerHTML=\'<span style=\\\'font-size: 1.5rem; font-weight: 800; background: linear-gradient(135deg, #0066FF 0%, #003D99 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;\\\'>DealernetX</span>\';">
+            </a>
+            <div class="nav-links">
+                <a href="/listings.php" class="nav-link">Marketplace</a>
+                <a href="/offers.php" class="nav-link">My Offers</a>
+                <a href="/dealerProfile.php" class="nav-link active">Profile</a>
+                <a href="/scanner.php" class="nav-link">Scanner App</a>
+                <a href="/login.php" class="nav-link">Login</a>
+                <a href="/register.php" class="btn-primary">Start Trading</a>
+            </div>
+        </div>
+    </nav>';
+}
+
+function getModernFooter() {
+    $currentYear = date('Y');
+    return '
+    <!-- Modern Footer -->
+    <footer class="modern-footer">
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <h3>DealernetX</h3>
+                    <p>The original bid-ask marketplace for sports cards, gaming, and collectibles.</p>
+                    <p>Trusted by collectors and dealers worldwide since 2001.</p>
+                </div>
+                <div class="footer-column">
+                    <h4>Platform</h4>
+                    <div class="footer-links">
+                        <a href="/listings.php" class="footer-link">Marketplace</a>
+                        <a href="/offers.php" class="footer-link">My Offers</a>
+                        <a href="/scanner.php" class="footer-link">Scanner App</a>
+                    </div>
+                </div>
+                <div class="footer-column">
+                    <h4>Company</h4>
+                    <div class="footer-links">
+                        <a href="/contact.php" class="footer-link">Contact</a>
+                    </div>
+                </div>
+                <div class="footer-column">
+                    <h4>Support</h4>
+                    <div class="footer-links">
+                        <a href="/help.php" class="footer-link">Help Center</a>
+                        <a href="/faqs.php" class="footer-link">FAQs</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; ' . $currentYear . ' DealernetX. All rights reserved. | <a href="/privacy.php">Privacy Policy</a> | <a href="/terms.php">Terms of Service</a></p>
+            </div>
+        </div>
+    </footer>';
+}
+
+function getModernScripts() {
+    return '<script>
+        // Smooth scrolling for navigation
+        document.querySelectorAll(\'a[href^="#"]\').forEach(anchor => {
+            anchor.addEventListener("click", function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute("href"));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start"
+                    });
+                }
+            });
+        });
+
+        // Navbar scroll effect
+        window.addEventListener("scroll", function() {
+            const navbar = document.getElementById("navbar");
+            if (navbar && window.scrollY > 50) {
+                navbar.style.boxShadow = "0 2px 20px rgba(0, 0, 0, 0.1)";
+            } else if (navbar) {
+                navbar.style.boxShadow = "none";
+            }
+        });
+    </script>';
+}
+
+// Keep all existing backend functions unchanged
 function displayMetricInterval($intervalId) {
     global $page, $isMyProfile;
 
@@ -443,80 +1335,6 @@ function displayMetricInterval($intervalId) {
     return $showIt;
 }
 
-function displayDealerTransactions($dealerTransactions) {
-    global $page, $dealerIsStaff, $isMyProfile, $dealerMetrics, $metricMatrix, $metricMatrixAsOf;
-
-    if ($isMyProfile || (! $dealerIsStaff)) {
-        if ($dealerMetrics->lifetimeAccepted) {
-            echo "<br />Lifetime Accepted Transactions: ".$dealerMetrics->lifetimeAccepted."<br />\n";
-        } else {
-            echo "<br />No Lifetime Accepted Transactions<br />\n";
-        }
-
-        if (is_array($metricMatrix)) {
-            $matrixAsOf = ($metricMatrixAsOf) ? "As of ".date('m/d/Y h:i:s') : "&nbsp;";
-            $intervalHeader =  "    <tr><th>&nbsp;</th>";
-            $intervalColumns = 1;
-            foreach ($dealerMetrics->intervals as $intervalId => $intervalInfo) {
-                if (displayMetricInterval($intervalId)) {
-                    $intervalHeader .= "<th>".$intervalInfo['name']."</th>";
-                    $intervalColumns++;
-                }
-            }
-            $intervalHeader .= "</tr>\n";
-
-            echo "<table style=' margin:0px auto; width: auto;'>\n";
-            echo "  <theader>\n";
-            echo "    <tr><th colspan='".$intervalColumns."'>Dealer Metrics ".$matrixAsOf."</th></tr>\n";
-            echo $intervalHeader;
-            echo "  </theader>\n";
-            echo "  <tbody>\n";
-            foreach ($metricMatrix as $metricname => $metric) {
-                echo "  <tr>\n";
-                echo "    <th>".$dealerMetrics->getProfileColumnTitle($metricname)."</th>";
-                $tdClass = $dealerMetrics->styleProfileColumnData($metricname);
-                $tdString = ($tdClass) ? "<td class='".$tdClass."'>" : "<td>";
-                foreach ($metric as $intervalId => $intervalValue) {
-                    if (displayMetricInterval($intervalId)) {
-                        echo $tdString.$dealerMetrics->formatProfileColumnData($intervalValue, $metricname)."</td>";
-                    }
-                }
-                echo "  </tr>\n";
-            }
-            echo "  </tbody>\n";
-            echo "</table>\n";
-        }
-    }
-}
-function displayAdminActions($dealerId) {
-    global $page;
-
-    if ($page->user->isAdmin()) {
-        echo "<div>\n";
-        echo "  <a class='fas fa-edit' title='Edit' href='userUpdate.php?userId=".$dealerId."'></a>\n";
-        echo "  <a class='fas fa-credit-card' title='EFT Credit' href='EFTone.php?userId=".$dealerId."'></a>\n";
-        echo "  <a class='fas fa-user-cog' title='Rights' href='assignUserRights.php?userId=".$dealerId."'></a>\n";
-        echo "  <a class='fas fa-mask' title='Proxy' href='inProxy.php?proxiedId=".$dealerId."'></a>\n";
-        echo "</div><br />\n";
-
-    }
-}
-
-function dealerRating($dealerId, $authorId) {
-    global $page;
-
-    $sql = "
-        SELECT dealerrating AS rating
-          FROM dealerratings
-         WHERE rateddealerid = ".$dealerId."
-            AND rategivenid = ".$authorId."
-    ";
-    $data = $page->db->get_field_query($sql);
-
-    return $data;
-}
-
-
 function getDealerInfo() {
     global $page, $dealerId;
     $row = null;
@@ -540,6 +1358,7 @@ function getDealerInfo() {
 
     return $row;
 }
+
 function getDealerDisputes($dealerId) {
     global $page;
 
@@ -553,7 +1372,6 @@ function getDealerDisputes($dealerId) {
 
     return($dealerDisputes);
 }
-
 
 function getDealerTransactions($dealerId) {
     global $page, $dealerIsStaff, $isMyProfile;
@@ -593,6 +1411,7 @@ function getDealerTransactions($dealerId) {
             $dealerTransactions['sixacceptpct'] = 0;
             $dealerTransactions['sixexpirepct'] = 0;
         }
+        
         $sql = "SELECT date_trunc('seconds', (avgrt || ' second')::interval) AS avgresponse
             FROM (
                 SELECT count(responsetime) as numrt, sum(responsetime) as totrt, avg(responsetime) as avgrt
@@ -644,7 +1463,7 @@ function getDealerTransactions($dealerId) {
                       AND o.transactiontype = 'Wanted'
                       AND o.satisfiedsell > 0
                 ) ratings";
-        //echo "<pre>\n".$sql."</pre><br />\n";
+        
         if ($rated = $page->db->sql_query($sql)) {
             $ratings = reset($rated);
             if ($ratings['ratingcount'] > 0) {
@@ -656,19 +1475,6 @@ function getDealerTransactions($dealerId) {
     }
 
     return $dealerTransactions;
-}
-
-function getDealerSignatures() {
-    global $page, $dealerId;
-
-    $sql = "
-        SELECT internalsig, externalsig
-          FROM userinfo
-         WHERE userid = ".$dealerId."
-    ";
-     $data = $page->db->sql_query($sql);
-
-      return $data;
 }
 
 function getDealerPreferredPayment() {
@@ -731,7 +1537,7 @@ function getEditDealerPreferredPayment() {
             case 'Yes':
                 $required = "*";
             case 'Optional':
-                $preferredPayment['Wanted'] .= "<input type'text' style='width:50ch;' id='wantinfo".$ptid."'  name='wantinfo".$ptid."' value='".$paymenttype['extrainfo']."' />".$required;
+                $preferredPayment['Wanted'] .= "<input type='text' style='width:50ch;' id='wantinfo".$ptid."'  name='wantinfo".$ptid."' value='".$paymenttype['extrainfo']."' />".$required;
                 break;
             default:
                 $preferredPayment['Wanted'] .= "&nbsp;";
@@ -753,7 +1559,7 @@ function getEditDealerPreferredPayment() {
             case 'Yes':
                 $required = "*";
             case 'Optional':
-                $preferredPayment['For Sale'] .= "<input type'text' style='width:50ch;' id='saleinfo".$ptid."'  name='saleinfo".$ptid."' value='".$paymenttype['extrainfo']."' />".$required;
+                $preferredPayment['For Sale'] .= "<input type='text' style='width:50ch;' id='saleinfo".$ptid."'  name='saleinfo".$ptid."' value='".$paymenttype['extrainfo']."' />".$required;
                 break;
             default:
                 $preferredPayment['For Sale'] .= "&nbsp;";
@@ -816,7 +1622,6 @@ function getDealerPreferredPaymentData() {
 
     return $preferredPayment;
 }
-
 
 function getDealerNotes() {
     global $page, $dealerId;
@@ -897,6 +1702,7 @@ function checkPaymentMethods($listingCounts) {
 
     return $success;
 }
+
 function saveDealerProfile($listingCounts) {
     global $page, $preferredPaymentData, $wantedTypes, $forSaleTypes, $bankInfo, $paypalId, $counterMinimumTotal, $counterMinimumLeast, $counterMinimumMost;
 
@@ -905,8 +1711,6 @@ function saveDealerProfile($listingCounts) {
     $hasWanted = false;
     $hasForSale = false;
     $insertValues = array();
-
-    //$bankInfo = optional_param('bankinfo', NULL, PARAM_TEXT);
 
     $counterMinimumTotal = optional_param('counterminimumdtotal', NULL, PARAM_TEXT);
     if ((! isset($counterMinimumTotal)) || (! is_numeric($counterMinimumTotal))) {
@@ -980,16 +1784,7 @@ function saveDealerProfile($listingCounts) {
     if ($isValid) {
         $success = true;
         $page->db->sql_begin_trans();
-        /*
-        $sql = "UPDATE userinfo
-                SET bankinfo = :bankinfo,
-                    counterminimumdtotal = :counterminimumdtotal
-                WHERE userid = :userid";
-        $params = array();
-        $params['counterminimumdtotal'] = $counterMinimumTotal;
-        $params['bankinfo'] = $bankInfo;
-        $params['userid'] = $page->user->userId;
-        */
+        
         $sql = "UPDATE userinfo
                 SET counterminimumdtotal = :counterminimumdtotal
                 WHERE userid = :userid";
@@ -999,7 +1794,7 @@ function saveDealerProfile($listingCounts) {
         if ($page->db->sql_execute_params($sql, $params)) {
             $sql = "DELETE FROM preferredpayment WHERE userid=".$page->user->userId;
             $deleted = $page->db->sql_execute_params($sql);
-            if (isset($deleted)) { // Will be set but 0 if no previous records
+            if (isset($deleted)) {
                 if ($hasWanted || $hasForSale) {
                     $sql = "INSERT INTO preferredpayment (userid, paymenttypeid, transactiontype, extrainfo, createdby, modifiedby) VALUES ".implode(",",$insertValues);
                     if (! $page->db->sql_execute_params($sql)) {
@@ -1185,7 +1980,6 @@ function deleteDealerLogo($dealerId) {
     return $success;
 }
 
-
 function profileFormatAddress($userId, $addressTypeId, $isMe=true, $showName=false) {
     global $page;
 
@@ -1205,12 +1999,7 @@ function profileDisplayAddress($addr, $userId, $addressTypeId, $isMe=true, $show
         if (!empty($addr['companyname'])) {
             echo $page->utility->htmlFriendlyString($addr['companyname'])."<br />\n";
         }
-        /*
-        echo $this->htmlFriendlyString($addr['street'])."<br />\n";
-        if (!empty($addr['street2'])) {
-            echo $this->htmlFriendlyString($addr['street2'])."<br />\n";
-        }
-        */
+        
         echo "".$addr['city'].", ".$addr['state']." ".$addr['zip']."<br />\n";
         if (!empty($addr['country'])) {
             echo $page->utility->htmlFriendlyString($addr['country'])."<br />\n";
@@ -1219,8 +2008,7 @@ function profileDisplayAddress($addr, $userId, $addressTypeId, $isMe=true, $show
             echo $page->utility->htmlFriendlyString($addr['addressnote'])."<br />\n";
         }
     } else {
-        echo "No information avaliable.\n";
+        echo "No information available.\n";
     }
 }
-
 ?>
