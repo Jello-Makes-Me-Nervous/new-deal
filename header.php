@@ -1,7 +1,3 @@
-<?php
-// header.php - Reusable header component for all pages
-// Include this file at the top of each page using: <?php include 'header.php'; ?>
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -203,16 +199,6 @@
                         <li class="nav-item">
                             <a class="nav-link <?php echo (isset($current_page) && $current_page == 'scanner') ? 'active' : ''; ?>" href="scanner.php">
                                 <i class="fas fa-barcode me-1"></i>Scanner App
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo (isset($current_page) && $current_page == 'login') ? 'active' : ''; ?>" href="login.php">
-                                <i class="fas fa-sign-in-alt me-1"></i>Login
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo (isset($current_page) && $current_page == 'trading') ? 'active' : ''; ?>" href="trading.php">
-                                <i class="fas fa-exchange-alt me-1"></i>Start Trading
                             </a>
                         </li>
                     </ul>
