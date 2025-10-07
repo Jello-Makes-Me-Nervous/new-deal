@@ -477,7 +477,7 @@ include 'includes/header.php';
 <!-- Hero Section -->
 <section class="hero">
     <div class="hero-container">
-        <h1>The Stock Market for Sports Cards</h1>
+        <h1>The Stock Market for Sports&nbsp;Cards</h1>
         <p>Trade sealed boxes and cases with real-time bid-ask pricing. Join thousands of collectors on the most trusted platform since 2001.</p>
         <div class="hero-buttons">
             <a href="/register.php" class="btn-hero btn-primary-hero">Join Exchange</a>
