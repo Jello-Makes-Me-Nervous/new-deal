@@ -49,164 +49,770 @@ if (!empty($recaptcha) && empty($honeypot)) {
 } else {
     $page->messages->addWarningMsg("You need to complete the recaptcha to register for access.");
 }
+
 $js = "
 const toggleRegistrationPassword = document.querySelector('#toggleRegistrationPassword');
 const registrationPassword = document.querySelector('#id_registrationpassword');
 
-  toggleRegistrationPassword.addEventListener('click', function (e) {
-    // toggle the type attribute
-    const type = registrationPassword.getAttribute('type') === 'password' ? 'text' : 'password';
-    registrationPassword.setAttribute('type', type);
-    // toggle the eye slash icon
-    this.classList.toggle('fa-eye-slash');
-});
+if (toggleRegistrationPassword) {
+    toggleRegistrationPassword.addEventListener('click', function (e) {
+        // toggle the type attribute
+        const type = registrationPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+        registrationPassword.setAttribute('type', type);
+        // toggle the eye slash icon
+        this.classList.toggle('fa-eye-slash');
+    });
+}
 ";
 $page->jsInit($js);
 
-echo $page->header('Register');
+// Output buffer to capture and modify the header
+ob_start();
+echo $page->header('DealernetX - Register');
+$headerContent = ob_get_clean();
+
+// Remove everything before </head> and add our clean structure
+$headPos = strpos($headerContent, '</head>');
+if ($headPos !== false) {
+    echo substr($headerContent, 0, $headPos);
+}
+
+echo getModernStyles(); // Add modern styles
+echo '</head><body class="modern-dealernetx">';
+require_once('includes/header.php'); // Include navigation from includes folder
 echo mainContent();
-echo $page->footer(true);
+require_once('includes/footer.php'); // Include footer + scripts from includes folder
 
 function mainContent() {
     global $CFG;
 
-    echo "<FORM  NAME='RegisterForm' ACTION='register.php'  OnSubmit='return VerifyFields(this)' METHOD='POST'  CLASS='form'>\n";
-    echo "  <P CLASS='required'> Fields marked with an <IMG SRC='images/asterick.gif' HEIGHT='8' WIDTH='8' BORDER='0' ALT='required field'> are required.</P>\n";
-    echo "  <TABLE CELLPADDING='5' CELLSPACING='0' BORDER='0' CLASS='form-table'>\n";
-    echo "    <TR>\n";
-    echo "      <TD colspan='2' class='table-copy' style='border: medium double rgb(0,0,255); text-align: center;'>Some emails from Dealernet get marked as spam by some spam filters.<br>Please add the dealernetx.com domain to your friendly domains in your spam filters.<br>Adding admin@dealernetx.com to your address book may help as well.</TD>\n";
-    echo "    </TR>\n";
-    echo "     <TR>\n";
-    echo "      <TD CLASS='form-label'><IMG SRC='images/asterick.gif' HEIGHT='8' WIDTH='8' BORDER='0' ALT='Required'>&nbsp;First Name:</TD>\n";
-    echo "      <TD><INPUT TYPE='text' NAME='firstname' SIZE='30' MAXLENGTH='30' VALUE='' CLASS='input' required></TD>\n";
-    echo "    </TR>\n";
-    echo "    <TR>\n";
-    echo "      <TD CLASS='form-label'><IMG SRC='images/asterick.gif' HEIGHT='8' WIDTH='8' BORDER='0' ALT='Required'>&nbsp;Last Name:</TD>\n";
-    echo "      <TD><INPUT TYPE='text' NAME='lastname' SIZE='30' MAXLENGTH='30' VALUE='' CLASS='input' required></TD>\n";
-    echo "    </TR>\n";
-    echo "    <TR>\n";
-    echo "      <TD CLASS='form-label'><IMG SRC='images/spacer.gif' HEIGHT='8' WIDTH='8' BORDER='0'>&nbsp;Company Name:</TD>\n";
-    echo "      <TD><INPUT TYPE='text' NAME='companyname' SIZE='30' MAXLENGTH='30' VALUE='' CLASS='input'></TD>\n";
-    echo "    </TR>\n";
-    echo "    <TR>\n";
-    echo "      <TD CLASS='form-label'><IMG SRC='images/asterick.gif' HEIGHT='8' WIDTH='8' BORDER='0' ALT='Required'>&nbsp;Address:</TD>\n";
-    echo "      <TD><INPUT TYPE='text' NAME='street' SIZE='30' MAXLENGTH='30' VALUE='' CLASS='input' required></TD>\n";
-    echo "    </TR>\n";
-    echo "    <TR>\n";
-    echo "      <TD CLASS='form-label'><IMG SRC='images/spacer.gif' HEIGHT='8' WIDTH='8' BORDER='0'>&nbsp;Address Line 2:</TD>\n";
-    echo "      <TD><INPUT TYPE='text' NAME='street2' SIZE='30' MAXLENGTH='30' VALUE='' CLASS='input'></TD>\n";
-    echo "    </TR>\n";
-    echo "    <TR>\n";
-    echo "      <TD CLASS='form-label'><IMG SRC='images/asterick.gif' HEIGHT='8' WIDTH='8' BORDER='0' ALT='Required'>&nbsp;City:</TD>\n";
-    echo "      <TD><INPUT TYPE='text' NAME='city' SIZE='30' MAXLENGTH='30' VALUE='' CLASS='input' required></TD>\n";
-    echo "    </TR>\n";
-    echo "    <TR>\n";
-    echo "      <TD CLASS='form-label'><IMG SRC='images/asterick.gif' HEIGHT='8' WIDTH='8' BORDER='0' ALT='Required'>&nbsp;State:</TD>\n";
-    echo "      <TD><INPUT TYPE='text' NAME='state' SIZE='2' MAXLENGTH='2' VALUE='' CLASS='input' required></TD>\n";
-    echo "    </TR>\n";
-    echo "    <TR>\n";
-    echo "      <TD CLASS='form-label'><IMG SRC='images/asterick.gif' HEIGHT='8' WIDTH='8' BORDER='0' ALT='Required'>&nbsp;Zip Code:</TD>\n";
-    echo "      <TD><INPUT TYPE='text' NAME='zip' SIZE='10' MAXLENGTH='10' VALUE='' CLASS='input' required></TD>\n";
-    echo "    </TR>\n";
-    echo "    <TR>\n";
-    echo "      <TD CLASS='form-label'><IMG SRC='images/asterick.gif' HEIGHT='8' WIDTH='8' BORDER='0' ALT='Required'>&nbsp;Country:</TD>\n";
-    echo "      <TD><INPUT TYPE='text' NAME='country' SIZE='30' MAXLENGTH='30' VALUE='' CLASS='input' required></TD>\n";
-    echo "    </TR>\n";
-    echo "    <TR>\n";
-    echo "      <TD CLASS='form-label'><IMG SRC='images/asterick.gif' HEIGHT='8' WIDTH='8' BORDER='0' ALT='Required'>&nbsp;Mobile Phone:</TD>\n";
-    echo "      <TD><INPUT TYPE='text' NAME='phone' SIZE='15' MAXLENGTH='15' VALUE='' CLASS='input'></TD>\n";
-    echo "    </TR>\n";
-    echo "    <TR>\n";
-    echo "      <TD CLASS='form-label'><IMG SRC='images/asterick.gif' HEIGHT='8' WIDTH='8' BORDER='0' ALT='Required'>&nbsp;E-mail [user name]:</TD>\n";
-    echo "      <TD><INPUT TYPE='text' NAME='email' SIZE='30' MAXLENGTH='100' VALUE='' CLASS='input' required></TD>\n";
-    echo "    </TR>\n";
-    echo "    <TR>\n";
-    echo "      <TD CLASS='form-label'><IMG SRC='images/asterick.gif' HEIGHT='8' WIDTH='8' BORDER='0' ALT='Required' required>&nbsp;Password:</TD>\n";
-    echo "      <TD>\n";
-    echo "        <INPUT TYPE='password' NAME='password' ID='id_registrationpassword' SIZE='30' MAXLENGTH='100' VALUE='' CLASS='input'>\n";
-    echo "        <i class='far fa-eye' id='toggleRegistrationPassword' style='margin-left: -30px; cursor: pointer;'></i>\n";
-    echo "      </TD>\n";
-    echo "    </TR>\n";
-//    echo "    <TR>\n";
-//    echo "      <TD CLASS='form-label'><IMG SRC='images/asterick.gif' HEIGHT='8' WIDTH='8' BORDER='0' ALT='Required'>&nbsp;Password Hint:</TD>\n";
-//    echo "      <TD><INPUT TYPE='text' NAME='hint' SIZE='30' MAXLENGTH='100' VALUE='' CLASS='input' required></TD>\n";
-//    echo "    </TR>\n";
-//    echo "    <TR>\n";
-//    echo "      <TD CLASS='form-label'><IMG SRC='images/asterick.gif' HEIGHT='8' WIDTH='8' BORDER='0' ALT='Required'>&nbsp;Hint Answer:</TD>\n";
-//    echo "      <TD><INPUT TYPE='text' NAME='answer' SIZE='30' MAXLENGTH='100' VALUE='' CLASS='input' required></TD>\n";
-//    echo "    </TR>\n";
-    echo "    <TR>\n";
-    echo "      <TD CLASS='form-label'><IMG SRC='images/spacer.gif' HEIGHT='8' WIDTH='8' BORDER='0'>&nbsp;EIN / Tax Id #:</TD>\n";
-    echo "      <TD><INPUT TYPE='text' NAME='ein' SIZE='11' MAXLENGTH='11' VALUE='' CLASS='input'></TD>\n";
-    echo "    </TR>\n";
-    echo "     <TR>\n";
-    echo "      <TD CLASS='form-label'><IMG SRC='images/asterick.gif' HEIGHT='8' WIDTH='8' BORDER='0' ALT='Required'>&nbsp;Referral:</TD>\n";
-    echo "      <TD><INPUT TYPE='text' NAME='referral' SIZE='30' VALUE='' CLASS='input' required><BR><SPAN CLASS='footnote'>If none, enter N/A</SPAN></TD>\n";
-    echo "    </TR>\n";
-    echo "    <TR>\n";
-    echo "      <TD CLASS='form-label'><IMG SRC='images/spacer.gif' HEIGHT='8' WIDTH='8' BORDER='0'>&nbsp;eBay ID:</TD>\n";
-    echo "      <TD><INPUT TYPE='text' NAME='ebayid' SIZE='30' MAXLENGTH='30' VALUE='' CLASS='input'></TD>\n";
-    echo "    </TR>\n";
-    echo "    <TR>\n";
-    echo "      <TD CLASS='form-label'><IMG SRC='images/spacer.gif' HEIGHT='8' WIDTH='8' BORDER='0'>&nbsp;PayPal ID:</TD>\n";
-    echo "      <TD><INPUT TYPE='text' NAME='paypalid' SIZE='30' MAXLENGTH='30' VALUE='' CLASS='input'></TD>\n";
-    echo "    </TR>\n";
-    echo "  </TABLE>\n";
-    if (isset($CFG->reCAPTCHA_SiteKey)) {
-        echo "  <div class='g-recaptcha' data-sitekey='".$CFG->reCAPTCHA_SiteKey."'></div>\n";
-    }
-    echo "  <br/>\n";
-    echo "  <input type='text' name='dow' id='dow' size='12' maxlength='12' value='' class='ohnohoney'>\n";
-    echo "  <P><INPUT TYPE='submit' VALUE='Submit Registration' ID='submitbtn' NAME='submitbtn'></P>\n";
-    echo "  <P>Subject to Terms and  Conditions of Use.</P>\n";
-    echo "</FORM>\n";
+    $html = '
+    <!-- Main Content Wrapper -->
+    <div class="main-content-wrapper">
+        <div class="container">
+            <div class="registration-container">
+                <div class="registration-header">
+                    <h1>Create Your Account</h1>
+                    <p>Join thousands of collectors and dealers on the most trusted platform since 2001</p>
+                </div>
+                
+                <div class="spam-notice">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <strong>Important Email Notice</strong>
+                        <p>Some emails from DealernetX may be marked as spam. Please add <strong>dealernetx.com</strong> to your safe senders list and add <strong>admin@dealernetx.com</strong> to your address book.</p>
+                    </div>
+                </div>
 
-    echo "<SCRIPT LANGUAGE='JavaScript' TYPE='text/javascript'>\n";
-    echo "<!--\n";
-    echo "\n";
-    echo "  function VerifyFields(f) {\n";
-    echo "    var a = [\n";
-    echo "              [/^firstname$/,   'First Name',      'text',    true,   50],\n";
-    echo "              [/^lastname$/,    'Last Name',       'text',    true,   50],\n";
-    echo "              [/^compname$/,    'Company Name',    'text',    false,  30],\n";
-    echo "              [/^street$/,      'Address',         'text',    true,   100],\n";
-    echo "              [/^street2$/,     'Address 2',       'text',    false,  100],\n";
-    echo "              [/^city$/,        'City',            'text',    true,   50],\n";
-    echo "              [/^state$/,       'State',           'text',    true,   2],\n";
-    echo "              [/^zip$/,         'Zip Code',        'text',    true,   10],\n";
-    echo "              [/^country$/,     'Country',         'text',    true,   30],\n";
-    echo "              [/^phone$/,       'Phone',           'text',    true,   20],\n";
-    echo "              [/^email$/,       'E-mail address',  'email',   true,   100],\n";
-    echo "              [/^password$/,    'Password',        'text',    true,   100],\n";
-    echo "              [/^hint$/,        'Password Hint',   'text',    true,   100],\n";
-    echo "              [/^answer$/,      'Answer',          'text',    true,   100],\n";
-    echo "              [/^ein$/,         'EIN / Tax ID #',  'text',    false,  11],\n";
-    echo "              [/^referral$/,    'Referral',        'text',    true,   100]\n";
-    echo "            ];\n";
-    echo "\n";
-    echo "    m = '';\n";
-    echo "    for (i = 0; i < f.elements.length; i++) {\n";
-    echo "        for (j = 0; j < a.length; j++) {\n";
-    echo "           if (f.elements[i].name.match(a[j][0])) {\n";
-    echo "               m = m + VerifyTextField(f.elements[i], a[j][1], a[j][2], a[j][3], a[j][4]);\n";
-    echo "               break;\n";
-    echo "           }\n";
-    echo "        }\n";
-    echo "    }\n";
-    echo "\n";
-    echo "    if (m != '') {\n";
-    echo "        alert('The following fields contain values that are not permitted or are missing values:\\n\\n' + m);\n";
-    echo "        return false;\n";
-    echo "    } else {\n";
-    echo "        return true;\n";
-    echo "    }\n";
-    echo "  }\n";
-    echo "\n";
-    echo "//-->\n";
-    echo "\n";
-    echo "</SCRIPT>\n";
+                <form name="RegisterForm" action="register.php" onsubmit="return VerifyFields(this)" method="POST" class="modern-form">
+                    <div class="form-sections">
+                        <!-- Personal Information Section -->
+                        <div class="form-section">
+                            <h2 class="section-title">Personal Information</h2>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="firstname">First Name <span class="required">*</span></label>
+                                    <input type="text" id="firstname" name="firstname" maxlength="30" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="lastname">Last Name <span class="required">*</span></label>
+                                    <input type="text" id="lastname" name="lastname" maxlength="30" required>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label for="companyname">Company Name</label>
+                                    <input type="text" id="companyname" name="companyname" maxlength="30">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contact Information Section -->
+                        <div class="form-section">
+                            <h2 class="section-title">Contact Information</h2>
+                            <div class="form-grid">
+                                <div class="form-group full-width">
+                                    <label for="street">Address <span class="required">*</span></label>
+                                    <input type="text" id="street" name="street" maxlength="30" required>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label for="street2">Address Line 2</label>
+                                    <input type="text" id="street2" name="street2" maxlength="30">
+                                </div>
+                                <div class="form-group">
+                                    <label for="city">City <span class="required">*</span></label>
+                                    <input type="text" id="city" name="city" maxlength="30" required>
+                                </div>
+                                <div class="form-group small">
+                                    <label for="state">State <span class="required">*</span></label>
+                                    <input type="text" id="state" name="state" maxlength="2" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="zip">Zip Code <span class="required">*</span></label>
+                                    <input type="text" id="zip" name="zip" maxlength="10" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="country">Country <span class="required">*</span></label>
+                                    <input type="text" id="country" name="country" maxlength="30" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="phone">Mobile Phone <span class="required">*</span></label>
+                                    <input type="text" id="phone" name="phone" maxlength="15" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Account Information Section -->
+                        <div class="form-section">
+                            <h2 class="section-title">Account Information</h2>
+                            <div class="form-grid">
+                                <div class="form-group full-width">
+                                    <label for="email">Email Address (Username) <span class="required">*</span></label>
+                                    <input type="email" id="email" name="email" maxlength="100" required>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label for="id_registrationpassword">Password <span class="required">*</span></label>
+                                    <div class="password-input-wrapper">
+                                        <input type="password" id="id_registrationpassword" name="password" maxlength="100" required>
+                                        <i class="far fa-eye" id="toggleRegistrationPassword"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Information Section -->
+                        <div class="form-section">
+                            <h2 class="section-title">Additional Information</h2>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="ein">EIN / Tax ID #</label>
+                                    <input type="text" id="ein" name="ein" maxlength="11">
+                                </div>
+                                <div class="form-group">
+                                    <label for="referral">Referral <span class="required">*</span></label>
+                                    <input type="text" id="referral" name="referral" maxlength="30" required>
+                                    <span class="field-hint">If none, enter N/A</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="ebayid">eBay ID</label>
+                                    <input type="text" id="ebayid" name="ebayid" maxlength="30">
+                                </div>
+                                <div class="form-group">
+                                    <label for="paypalid">PayPal ID</label>
+                                    <input type="text" id="paypalid" name="paypalid" maxlength="30">
+                                </div>
+                            </div>
+                        </div>
+                    </div>';
+
+    if (isset($CFG->reCAPTCHA_SiteKey)) {
+        $html .= '
+                    <div class="recaptcha-wrapper">
+                        <div class="g-recaptcha" data-sitekey="'.$CFG->reCAPTCHA_SiteKey.'"></div>
+                    </div>';
+    }
+
+    $html .= '
+                    <!-- Honeypot field for bot protection -->
+                    <input type="text" name="dow" id="dow" class="ohnohoney">
+                    
+                    <div class="form-footer">
+                        <p class="required-note"><span class="required">*</span> Required fields</p>
+                        <button type="submit" name="submitbtn" id="submitbtn" class="btn-submit">
+                            Create Account
+                        </button>
+                        <p class="terms-note">By creating an account, you agree to our Terms and Conditions of Use</p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>';
+
+    // Include the original JavaScript validation
+    $html .= '
+    <script type="text/javascript">
+    function VerifyFields(f) {
+        var a = [
+            [/^firstname$/,   "First Name",      "text",    true,   50],
+            [/^lastname$/,    "Last Name",       "text",    true,   50],
+            [/^companyname$/, "Company Name",    "text",    false,  30],
+            [/^street$/,      "Address",         "text",    true,   100],
+            [/^street2$/,     "Address 2",       "text",    false,  100],
+            [/^city$/,        "City",            "text",    true,   50],
+            [/^state$/,       "State",           "text",    true,   2],
+            [/^zip$/,         "Zip Code",        "text",    true,   10],
+            [/^country$/,     "Country",         "text",    true,   30],
+            [/^phone$/,       "Phone",           "text",    true,   20],
+            [/^email$/,       "E-mail address",  "email",   true,   100],
+            [/^password$/,    "Password",        "text",    true,   100],
+            [/^ein$/,         "EIN / Tax ID #",  "text",    false,  11],
+            [/^referral$/,    "Referral",        "text",    true,   100]
+        ];
+
+        var m = "";
+        for (i = 0; i < f.elements.length; i++) {
+            for (j = 0; j < a.length; j++) {
+                if (f.elements[i].name.match(a[j][0])) {
+                    m = m + VerifyTextField(f.elements[i], a[j][1], a[j][2], a[j][3], a[j][4]);
+                    break;
+                }
+            }
+        }
+
+        if (m != "") {
+            alert("The following fields contain values that are not permitted or are missing values:\\n\\n" + m);
+            return false;
+        } else {
+            return true;
+        }
+    }
+    </script>';
+
+    return $html;
 }
 
+function getModernStyles() {
+    return '<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0066FF;
+            --primary-dark: #003D99;
+            --success: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --dark: #0F172A;
+            --gray: #64748B;
+            --light: #F8FAFC;
+            --gradient: linear-gradient(135deg, #0066FF 0%, #003D99 100%);
+            --navy: #001F3F;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background: var(--light);
+            overflow-x: hidden;
+        }
+
+        /* Hide original template elements */
+        .original-header, .original-nav { display: none; }
+        body > table, body > center { display: none !important; }
+        #header, .header, #navigation, .navigation { display: none !important; }
+        #leftbar, #rightbar, .leftbar, .rightbar { display: none !important; }
+        #sidebar, .sidebar, aside { display: none !important; }
+        body > table[width="100%"] { display: none !important; }
+
+        /* Modern Navigation */
+        nav.modern-nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-link {
+            display: inline-block;
+            height: 40px;
+            text-decoration: none;
+        }
+
+        .logo-img {
+            height: 40px;
+            width: auto;
+            display: block;
+            transition: opacity 0.3s ease;
+        }
+
+        .logo-img:hover {
+            opacity: 0.8;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--gray);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            position: relative;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary);
+        }
+
+        .nav-link::after {
+            content: "";
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        .nav-link:hover::after, .nav-link.active::after {
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 102, 255, 0.2);
+        }
+
+        /* Main Content */
+        .main-content-wrapper {
+            margin-top: 80px;
+            padding: 3rem 0;
+            min-height: calc(100vh - 80px);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Registration Container */
+        .registration-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .registration-header {
+            background: var(--gradient);
+            color: white;
+            padding: 3rem;
+            text-align: center;
+        }
+
+        .registration-header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .registration-header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        /* Spam Notice */
+        .spam-notice {
+            background: #FFF3CD;
+            border: 1px solid #FFC107;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 2rem 3rem;
+            display: flex;
+            gap: 1rem;
+            align-items: start;
+        }
+
+        .spam-notice i {
+            color: #F59E0B;
+            font-size: 1.25rem;
+            margin-top: 0.25rem;
+        }
+
+        .spam-notice strong {
+            display: block;
+            color: var(--dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .spam-notice p {
+            color: #856404;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        /* Modern Form */
+        .modern-form {
+            padding: 0 3rem 3rem;
+        }
+
+        .form-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .form-section {
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 2rem;
+        }
+
+        .form-section:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-title::before {
+            content: "";
+            display: inline-block;
+            width: 4px;
+            height: 24px;
+            background: var(--gradient);
+            border-radius: 2px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+
+        .form-group.small {
+            grid-column: span 1;
+            max-width: 100px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .form-group input {
+            padding: 0.75rem 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+        }
+
+        .form-group input:hover {
+            border-color: #cbd5e1;
+        }
+
+        .required {
+            color: var(--danger);
+            font-weight: normal;
+        }
+
+        .field-hint {
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin-top: 0.25rem;
+        }
+
+        /* Password Input Wrapper */
+        .password-input-wrapper {
+            position: relative;
+        }
+
+        .password-input-wrapper input {
+            padding-right: 3rem;
+            width: 100%;
+        }
+
+        .password-input-wrapper i {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: var(--gray);
+            transition: color 0.3s ease;
+        }
+
+        .password-input-wrapper i:hover {
+            color: var(--primary);
+        }
+
+        /* reCAPTCHA Wrapper */
+        .recaptcha-wrapper {
+            display: flex;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+
+        /* Honeypot Field */
+        .ohnohoney {
+            position: absolute;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        /* Form Footer */
+        .form-footer {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .required-note {
+            font-size: 0.9rem;
+            color: var(--gray);
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-submit {
+            background: var(--gradient);
+            color: white;
+            padding: 1rem 3rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 102, 255, 0.2);
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 102, 255, 0.3);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        .terms-note {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+
+        /* Modern Footer */
+        footer.modern-footer {
+            background: linear-gradient(180deg, #001F3F 0%, #000A1A 100%);
+            color: white;
+            padding: 3rem 2rem 1rem;
+            margin-top: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        footer.modern-footer::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #0066FF, transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-brand h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #0066FF 0%, #00A3FF 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+
+        .footer-brand p {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+
+        .footer-column h4 {
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #0066FF;
+            font-weight: 600;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .footer-link {
+            color: rgba(255, 255, 255, 0.75);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            position: relative;
+            padding-left: 0;
+        }
+
+        .footer-link:hover {
+            color: #00A3FF;
+            padding-left: 5px;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(0, 102, 255, 0.2);
+            padding-top: 2rem;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+        }
+
+        .footer-bottom a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-bottom a:hover {
+            color: #00A3FF;
+        }
+
+        /* Success/Error Messages */
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .alert-success {
+            background: #D1FAE5;
+            border: 1px solid #10B981;
+            color: #065F46;
+        }
+
+        .alert-error {
+            background: #FEE2E2;
+            border: 1px solid #EF4444;
+            color: #991B1B;
+        }
+
+        .alert-warning {
+            background: #FEF3C7;
+            border: 1px solid #F59E0B;
+            color: #92400E;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .container {
+                padding: 0 1rem;
+            }
+
+            .registration-header {
+                padding: 2rem 1.5rem;
+            }
+
+            .registration-header h1 {
+                font-size: 2rem;
+            }
+
+            .modern-form {
+                padding: 0 1.5rem 2rem;
+            }
+
+            .spam-notice {
+                margin: 1.5rem;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-group.small {
+                max-width: none;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+    </style>';
+}
+
+// Keep all the existing backend functions unchanged
 function createUser($firstname, $lastname, $companyname, $street, $street2, $city, $state, $zip,
                     $country, $phone, $email, $password, $hint, $answer, $referral, $ebayid, $paypalid) {
     global $page;
@@ -371,7 +977,6 @@ function createUser($firstname, $lastname, $companyname, $street, $street2, $cit
 function sendInternalMsg($userid, $subject = "New User Registration") {
     global $page;
 
-
     $msg = "<div class='filters'>\n";
     foreach($_POST as $name=>$value) {
         if ($name == "dow") {
@@ -423,7 +1028,7 @@ function doesEmailExist($email) {
 
     $params = array();
     $params["username"]         = strtolower($email);
-    $params["username2"]         = strtolower($email);
+    $params["username2"]        = strtolower($email);
     $params["billingemail"]     = strtolower($email);
     $params["shippingemail"]    = strtolower($email);
 
